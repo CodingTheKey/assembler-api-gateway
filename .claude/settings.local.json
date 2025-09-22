@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/jose_corte/www/backend/assembleo-core/src/modules/unity/controllers/**)",
+      "Read(//Users/jose_corte/www/backend/assembleo-core/src/modules/meeting/controllers/**)",
+      "Read(//Users/jose_corte/www/backend/assembleo-core/src/**)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
