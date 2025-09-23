@@ -11,6 +11,7 @@ const LEGACY_ROUTE_PATTERNS = [
 
   // Associates
   '/associate/download-pdf',
+  '/associates/download-pdf', // New route format
   '/associate/deactivate',
 
   // Unity
@@ -29,6 +30,10 @@ const LEGACY_DYNAMIC_PATTERNS = [
   {
     pattern: /^\/associate\/download-pdf\/[^\/]+$/,
     description: 'Associate PDF download: /associate/download-pdf/:id'
+  },
+  {
+    pattern: /^\/associates\/download-pdf\/[^\/]+$/,
+    description: 'Associate PDF download: /associates/download-pdf/:id'
   },
   {
     pattern: /^\/file\/[^\/]+$/,

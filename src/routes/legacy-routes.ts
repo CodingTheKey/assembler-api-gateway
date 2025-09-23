@@ -105,12 +105,22 @@ export async function setupLegacyRoutes(app: Hono) {
         const contentType = response.headers.get('content-type') || 'application/pdf';
         const contentDisposition = response.headers.get('content-disposition');
 
+        // Set content headers
         c.header('Content-Type', contentType);
         if (contentDisposition) {
           c.header('Content-Disposition', contentDisposition);
         }
 
-        return new Response(response.body, {
+        // Add CORS headers manually for file downloads
+        c.header('Access-Control-Allow-Origin', '*');
+        c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+        c.header('Access-Control-Expose-Headers', 'Content-Disposition, X-Response-Time');
+
+        // Get the response body as ArrayBuffer to avoid stream issues
+        const buffer = await response.arrayBuffer();
+
+        return new Response(buffer, {
           status: response.status,
           headers: c.res.headers
         });
@@ -162,9 +172,19 @@ export async function setupLegacyRoutes(app: Hono) {
       if (response.ok) {
         const contentType = response.headers.get('content-type') || 'application/octet-stream';
 
+        // Set content headers
         c.header('Content-Type', contentType);
 
-        return new Response(response.body, {
+        // Add CORS headers manually for file downloads
+        c.header('Access-Control-Allow-Origin', '*');
+        c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+        c.header('Access-Control-Expose-Headers', 'Content-Disposition, X-Response-Time');
+
+        // Get the response body as ArrayBuffer to avoid stream issues
+        const buffer = await response.arrayBuffer();
+
+        return new Response(buffer, {
           status: response.status,
           headers: c.res.headers
         });
@@ -241,6 +261,7 @@ export async function setupLegacyRoutes(app: Hono) {
   console.log('  GET /api/meetings');
   console.log('  POST /api/meetings/:id/start');
   console.log('  GET /api/associate/download-pdf/:id');
+  console.log('  GET /api/associates/download-pdf/:id');
   console.log('  DELETE /api/associate/deactivate');
   console.log('  GET /api/file/:key');
   console.log('  GET /api/legacy-health');
