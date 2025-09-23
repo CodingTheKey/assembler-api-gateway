@@ -3,7 +3,15 @@
     "allow": [
       "Read(//Users/jose_corte/www/backend/assembleo-core/src/modules/unity/controllers/**)",
       "Read(//Users/jose_corte/www/backend/assembleo-core/src/modules/meeting/controllers/**)",
-      "Read(//Users/jose_corte/www/backend/assembleo-core/src/**)"
+      "Read(//Users/jose_corte/www/backend/assembleo-core/src/**)",
+      "Read(//home/jose-corte/www/backend/legendarios-api-gateway/src/middlewares/**)",
+      "Bash(tree:*)",
+      "Read(//home/jose-corte/www/backend/legendarios-api-gateway/src/**)",
+      "Read(//home/jose-corte/www/backend/legendarios-api-gateway/**)",
+      "Bash(npm install)",
+      "Bash(npm run build:*)",
+      "Read(//home/jose-corte/www/backend/assembleo-backend/**)",
+      "Read(//home/jose-corte/www/backend/assembleo-core/**)"
     ],
     "deny": [],
     "ask": []

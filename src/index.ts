@@ -1,119 +1,119 @@
-import { Hono } from 'hono'
-import { cors } from 'hono/cors'
-import { logger } from 'hono/logger'
-import { gatewayConfig, serviceConfig } from './config.js'
+import { Hono } from 'hono';
+import { cors } from 'hono/cors';
+import { HTTPException } from 'hono/http-exception';
+import { logger } from 'hono/logger';
+import { timing } from 'hono/timing';
+import { gatewayConfig, serviceConfig } from './config';
+import { RateLimitMiddleware } from './middlewares/rate-limit.middleware';
+import { requestLoggerMiddleware } from './middlewares/request-logger.middleware';
+import { verifyTokenServicesMiddleware } from './middlewares/verify-jwt.middleware';
+import { setupLegacyRoutes } from './routes/legacy-routes';
+import { NotFoundRoute } from './routes/not-found.route';
+import ProtectedRoutes from './routes/protected-routes/protected-routes.factory';
+import { swaggerConfig } from './swagger/swagger-config';
 
-const app = new Hono()
+const app = new Hono();
 
-// Middleware
+app.use('*', timing());
+app.use('*', logger());
 app.use('*', cors({
-  origin: gatewayConfig.corsOrigins
-}))
-app.use('*', logger())
+  origin: gatewayConfig.corsOrigins,
+  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  exposeHeaders: ['Content-Disposition', 'X-Response-Time'],
+  credentials: false,
+}));
 
-// Health check
+app.use('*', requestLoggerMiddleware);
+app.use('*', RateLimitMiddleware);
+
+const protectedRoutes = new Hono();
+protectedRoutes.use('*', verifyTokenServicesMiddleware);
+
+ProtectedRoutes.ProtectedRoutes.configRoute(protectedRoutes);
+
+setupLegacyRoutes(app);
+
+app.route('/api', protectedRoutes);
+
 app.get('/health', (c) => {
-  return c.json({ 
+  return c.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
+    version: '1.0.0',
     services: serviceConfig.map(s => ({ path: s.path, target: s.target }))
-  })
-})
+  });
+});
 
-// Proxy function with timeout and error handling
-async function proxyRequest(c: any, targetUrl: string, timeout: number = 5000) {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), timeout)
+app.get('/swagger.json', (c) => {
+  return c.json(swaggerConfig);
+});
 
-  try {
-    const url = new URL(c.req.url)
-    const targetPath = url.pathname
-    const queryString = url.search
-
-    const proxyUrl = `${targetUrl}${targetPath}${queryString}`
-
-    const headers: Record<string, string> = {}
-    const requestHeaders = c.req.header()
-
-    for (const [key, value] of Object.entries(requestHeaders)) {
-      if (!['host', 'connection', 'content-length'].includes(key.toLowerCase())) {
-        headers[key] = value
-      }
+app.get('/docs', (c) => {
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Assembleo API Gateway - Documentation</title>
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/swagger-ui-dist@5.10.3/swagger-ui.css" />
+  <style>
+    html {
+      box-sizing: border-box;
+      overflow: -moz-scrollbars-vertical;
+      overflow-y: scroll;
     }
-
-    const body = ['GET', 'HEAD'].includes(c.req.method) 
-      ? undefined
-      : await c.req.arrayBuffer()
-
-    const response = await fetch(proxyUrl, {
-      method: c.req.method,
-      headers,
-      body,
-      signal: controller.signal
-    })
-
-    clearTimeout(timeoutId)
-
-    const responseBody = await response.arrayBuffer()
-
-    const responseHeaders: Record<string, string> = {}
-    response.headers.forEach((value, key) => {
-      if (!['transfer-encoding', 'connection'].includes(key.toLowerCase())) {
-        responseHeaders[key] = value
-      }
-    })
-
-    return new Response(responseBody, {
-      status: response.status,
-      statusText: response.statusText,
-      headers: responseHeaders
-    })
-  } catch (error) {
-    clearTimeout(timeoutId)
-
-    if (error instanceof Error && error.name === 'AbortError') {
-      console.error(`Request timeout for ${targetUrl}`)
-      return c.json({ 
-        error: 'Request timeout',
-        message: 'Service did not respond within the timeout period'
-      }, 504)
+    *, *:before, *:after {
+      box-sizing: inherit;
     }
-
-    console.error('Proxy error:', error)
-    return c.json({ 
-      error: 'Service unavailable',
-      message: 'Failed to connect to target service',
-      timestamp: new Date().toISOString()
-    }, 503)
-  }
-}
-
-// Dynamic route handling
-app.all('*', async (c) => {
-  const path = c.req.path
-
-  for (const service of serviceConfig) {
-    const servicePath = service.path.replace('/*', '')
-
-    if (path.startsWith(servicePath)) {
-      if (service.methods && !service.methods.includes(c.req.method)) {
-        return c.json({ 
-          error: 'Method not allowed',
-          allowedMethods: service.methods 
-        }, 405)
-      }
-
-      return proxyRequest(c, service.target, service.timeout)
+    body {
+      margin:0;
+      background: #fafafa;
     }
+  </style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://unpkg.com/swagger-ui-dist@5.10.3/swagger-ui-bundle.js"></script>
+  <script src="https://unpkg.com/swagger-ui-dist@5.10.3/swagger-ui-standalone-preset.js"></script>
+  <script>
+    window.onload = function() {
+      const ui = SwaggerUIBundle({
+        url: '/swagger.json',
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout"
+      });
+    };
+  </script>
+</body>
+</html>`;
+
+  return c.html(html);
+});
+
+app.onError((err, c) => {
+  console.error('Gateway error:', err);
+
+  if (err instanceof HTTPException) {
+    return c.json({ error: err.message }, err.status);
   }
 
-  return c.json({ 
-    error: 'Route not found',
-    path: path,
-    availableRoutes: serviceConfig.map(s => s.path),
-    timestamp: new Date().toISOString()
-  }, 404)
-})
+  return c.json({
+    error: 'Internal server error',
+    requestId: c.req.header('X-Request-ID') || 'unknown'
+  }, 500);
+});
+
+NotFoundRoute.configRoute(app);
 
 console.log(`🚀 API Gateway starting on port ${gatewayConfig.port}`)
 console.log('📋 Available routes:')
@@ -121,7 +121,16 @@ serviceConfig.forEach(service => {
   console.log(`  ${service.path} -> ${service.target}`)
 })
 
-export default {
-  port: gatewayConfig.port,
-  fetch: app.fetch
+// For local development
+if (process.env.NODE_ENV !== 'production') {
+  const { serve } = await import('@hono/node-server')
+
+  serve({
+    fetch: app.fetch,
+    port: Number(gatewayConfig.port)
+  })
+
+  console.log(`🌐 Server running at http://localhost:${gatewayConfig.port}`)
 }
+
+export default app;
