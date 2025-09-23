@@ -1,7 +1,7 @@
 import { Context, Hono } from 'hono';
 import { serviceConfig } from '../../config';
 import { RedirectToService } from '../../lib/redirect-to-service';
-import { setupLegacyRoutes } from '../legacy-routes';
+import { isLegacyRoute } from '../../middlewares/legacy-route-check.middleware';
 
 export class ProtectedRoutes {
   constructor() {
@@ -12,11 +12,15 @@ export class ProtectedRoutes {
     this.configAssociatesRoute(app);
     this.configUnitiesRoute(app);
     this.configMeetingsRoute(app);
-    this.configLegacyRoutes(app);
   }
 
   configAssociatesRoute(app: Hono) {
     app.all('/associates/*', async (c: Context) => {
+      // Skip if this is a legacy route
+      if (isLegacyRoute(c)) {
+        return c.notFound();
+      }
+
       const associatesService = serviceConfig.find(s => s.path.includes('/associates'));
       if (!associatesService) {
         return c.json({ error: 'Associates service not configured' }, 503);
@@ -37,6 +41,25 @@ export class ProtectedRoutes {
 
   configMeetingsRoute(app: Hono) {
     app.all('/meetings/*', async (c: Context) => {
+      // Skip if this is a legacy route
+      if (isLegacyRoute(c)) {
+        return c.notFound();
+      }
+
+      const meetingsService = serviceConfig.find(s => s.path.includes('/meetings'));
+      if (!meetingsService) {
+        return c.json({ error: 'Meetings service not configured' }, 503);
+      }
+      return await RedirectToService.handle(c, meetingsService.target, '/meetings', meetingsService.timeout);
+    });
+
+    // Handle POST /meetings separately (new service create endpoint)
+    app.post('/meetings', async (c: Context) => {
+      // Skip if this is a legacy route
+      if (isLegacyRoute(c)) {
+        return c.notFound();
+      }
+
       const meetingsService = serviceConfig.find(s => s.path.includes('/meetings'));
       if (!meetingsService) {
         return c.json({ error: 'Meetings service not configured' }, 503);
@@ -45,7 +68,4 @@ export class ProtectedRoutes {
     });
   }
 
-  configLegacyRoutes(app: Hono) {
-    setupLegacyRoutes(app);
-  }
 }

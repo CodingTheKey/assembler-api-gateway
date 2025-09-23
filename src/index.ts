@@ -1,3 +1,6 @@
+// Load environment configuration first
+import './env';
+
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
@@ -7,6 +10,7 @@ import { gatewayConfig, serviceConfig } from './config';
 import { RateLimitMiddleware } from './middlewares/rate-limit.middleware';
 import { requestLoggerMiddleware } from './middlewares/request-logger.middleware';
 import { verifyTokenServicesMiddleware } from './middlewares/verify-jwt.middleware';
+import { legacyRouteCheckMiddleware } from './middlewares/legacy-route-check.middleware';
 import { setupLegacyRoutes } from './routes/legacy-routes';
 import { NotFoundRoute } from './routes/not-found.route';
 import ProtectedRoutes from './routes/protected-routes/protected-routes.factory';
@@ -29,10 +33,13 @@ app.use('*', RateLimitMiddleware);
 
 const protectedRoutes = new Hono();
 protectedRoutes.use('*', verifyTokenServicesMiddleware);
+protectedRoutes.use('*', legacyRouteCheckMiddleware);
 
+// Setup legacy routes FIRST (more specific routes)
+setupLegacyRoutes(protectedRoutes);
+
+// Then setup the general protected routes
 ProtectedRoutes.ProtectedRoutes.configRoute(protectedRoutes);
-
-setupLegacyRoutes(app);
 
 app.route('/api', protectedRoutes);
 

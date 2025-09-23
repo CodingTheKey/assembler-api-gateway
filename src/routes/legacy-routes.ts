@@ -1,16 +1,15 @@
 import { Context, Hono } from 'hono';
+import { env } from '../env';
 
-const LEGACY_AUTH_SERVICE = process.env.LEGACY_AUTH_SERVICE || 'http://localhost:3001';
-const LEGACY_MEETING_SERVICE = process.env.LEGACY_MEETING_SERVICE || 'http://localhost:3002';
-const LEGACY_ASSOCIATE_SERVICE = process.env.LEGACY_ASSOCIATE_SERVICE || 'http://localhost:3003';
-const LEGACY_UNITY_SERVICE = process.env.LEGACY_UNITY_SERVICE || 'http://localhost:3004';
+export async function setupLegacyRoutes(app: Hono) {
+  console.log('🔧 Setting up legacy routes...');
 
-export function setupLegacyRoutes(app: Hono) {
   // Auth routes
   app.post('/auth/login', async (c: Context) => {
+    console.log('🔐 Legacy auth/login called');
     try {
       const body = await c.req.json();
-      const response = await fetch(`${LEGACY_AUTH_SERVICE}/auth/login`, {
+      const response = await fetch(`${env.LEGACY_AUTH_SERVICE}/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -27,9 +26,11 @@ export function setupLegacyRoutes(app: Hono) {
   });
 
   // Meeting routes
+  console.log('📊 Registering legacy meeting routes...');
   app.get('/meetings/count', async (c: Context) => {
+    console.log('📊 Legacy meetings/count called');
     try {
-      const url = new URL(`${LEGACY_MEETING_SERVICE}/meetings/count`);
+      const url = new URL(`${env.LEGACY_MEETING_SERVICE}/meetings/count`);
       Object.entries(c.req.query()).forEach(([key, value]) => {
         url.searchParams.append(key, value);
       });
@@ -48,8 +49,9 @@ export function setupLegacyRoutes(app: Hono) {
   });
 
   app.get('/meetings', async (c: Context) => {
+    console.log('📊 Legacy meetings (list) called');
     try {
-      const url = new URL(`${LEGACY_MEETING_SERVICE}/meetings`);
+      const url = new URL(`${env.LEGACY_MEETING_SERVICE}/meetings`);
       Object.entries(c.req.query()).forEach(([key, value]) => {
         url.searchParams.append(key, value);
       });
@@ -72,7 +74,7 @@ export function setupLegacyRoutes(app: Hono) {
       const id = c.req.param('id');
       const body = await c.req.json();
 
-      const response = await fetch(`${LEGACY_MEETING_SERVICE}/meetings/${id}/start`, {
+      const response = await fetch(`${env.LEGACY_MEETING_SERVICE}/meetings/${id}/start`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -89,11 +91,11 @@ export function setupLegacyRoutes(app: Hono) {
   });
 
   // Associate routes
-  app.get('/associate/download-pdf/:id', async (c: Context) => {
+  app.get('/associates/download-pdf/:id', async (c: Context) => {
     try {
       const id = c.req.param('id');
 
-      const response = await fetch(`${LEGACY_ASSOCIATE_SERVICE}/associate/download-pdf/${id}`, {
+      const response = await fetch(`${env.LEGACY_ASSOCIATE_SERVICE}/associate/download-pdf/${id}`, {
         headers: {
           'Authorization': c.req.header('Authorization') || '',
         }
@@ -125,7 +127,7 @@ export function setupLegacyRoutes(app: Hono) {
     try {
       const body = await c.req.json();
 
-      const response = await fetch(`${LEGACY_ASSOCIATE_SERVICE}/associate/deactivate`, {
+      const response = await fetch(`${env.LEGACY_ASSOCIATE_SERVICE}/associate/deactivate`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -142,13 +144,16 @@ export function setupLegacyRoutes(app: Hono) {
   });
 
   // Unity routes
+  console.log('📁 Registering /file/:key route...');
   app.get('/file/:key', async (c: Context) => {
+    console.log('📁 Legacy /file/:key route called!');
     try {
       const key = c.req.param('key');
 
       console.log('Fetching file with key:', key);
+      console.log('Using env.LEGACY_UNITY_SERVICE:', env.LEGACY_UNITY_SERVICE);
 
-      const response = await fetch(`${LEGACY_UNITY_SERVICE}/file/${key}`, {
+      const response = await fetch(`${env.LEGACY_UNITY_SERVICE}/file/${key}`, {
         headers: {
           'Authorization': c.req.header('Authorization') || '',
         }
@@ -164,11 +169,24 @@ export function setupLegacyRoutes(app: Hono) {
           headers: c.res.headers
         });
       } else {
-        const data = await response.json();
-        return c.json(data, response.status as any);
+        // Handle error responses - check content type
+        const contentType = response.headers.get('content-type') || '';
+
+        if (contentType.includes('application/json')) {
+          const data = await response.json();
+          return c.json(data, response.status as any);
+        } else {
+          const text = await response.text();
+          return c.json({ message: text }, response.status as any);
+        }
       }
     } catch (error) {
-      return c.json({ error: 'Internal server error' }, 500);
+      console.error('Error in legacy file route:', error);
+      return c.json({
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        service: env.LEGACY_UNITY_SERVICE
+      }, 500);
     }
   });
 
@@ -177,9 +195,9 @@ export function setupLegacyRoutes(app: Hono) {
     try {
       const services = [
         { name: 'auth', url: `${LEGACY_AUTH_SERVICE}/health` },
-        { name: 'meeting', url: `${LEGACY_MEETING_SERVICE}/health` },
-        { name: 'associate', url: `${LEGACY_ASSOCIATE_SERVICE}/health` },
-        { name: 'unity', url: `${LEGACY_UNITY_SERVICE}/health` }
+        { name: 'meeting', url: `${env.LEGACY_MEETING_SERVICE}/health` },
+        { name: 'associate', url: `${env.LEGACY_ASSOCIATE_SERVICE}/health` },
+        { name: 'unity', url: `${env.LEGACY_UNITY_SERVICE}/health` }
       ];
 
       const healthChecks = await Promise.allSettled(
@@ -215,4 +233,15 @@ export function setupLegacyRoutes(app: Hono) {
       }, 500);
     }
   });
+
+  console.log('✅ Legacy routes setup completed!');
+  console.log('📋 Registered legacy routes in /api:');
+  console.log('  POST /api/auth/login');
+  console.log('  GET /api/meetings/count');
+  console.log('  GET /api/meetings');
+  console.log('  POST /api/meetings/:id/start');
+  console.log('  GET /api/associate/download-pdf/:id');
+  console.log('  DELETE /api/associate/deactivate');
+  console.log('  GET /api/file/:key');
+  console.log('  GET /api/legacy-health');
 }
