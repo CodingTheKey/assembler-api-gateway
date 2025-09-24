@@ -1,8 +1,22 @@
 import { Context, Hono } from 'hono';
 import { env } from '../env';
 
+// Helper function to add CORS headers to legacy route responses
+function addCorsHeaders(c: Context) {
+  c.header('Access-Control-Allow-Origin', '*');
+  c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
+  c.header('Access-Control-Expose-Headers', 'Content-Disposition, X-Response-Time');
+}
+
 export async function setupLegacyRoutes(app: Hono) {
   console.log('🔧 Setting up legacy routes...');
+
+  // Handle OPTIONS requests for CORS preflight
+  app.options('*', async (c: Context) => {
+    addCorsHeaders(c);
+    return c.text('', 204);
+  });
 
   // Auth routes
   app.post('/auth/login', async (c: Context) => {
@@ -18,74 +32,13 @@ export async function setupLegacyRoutes(app: Hono) {
         body: JSON.stringify(body)
       });
 
-      const data = await response.json();
-      return c.json(data, response.status as any);
-    } catch (error) {
-      return c.json({ error: 'Internal server error' }, 500);
-    }
-  });
-
-  // Meeting routes
-  console.log('📊 Registering legacy meeting routes...');
-  app.get('/meetings/count', async (c: Context) => {
-    console.log('📊 Legacy meetings/count called');
-    try {
-      const url = new URL(`${env.LEGACY_MEETING_SERVICE}/meetings/count`);
-      Object.entries(c.req.query()).forEach(([key, value]) => {
-        url.searchParams.append(key, value);
-      });
-
-      const response = await fetch(url.toString(), {
-        headers: {
-          'Authorization': c.req.header('Authorization') || '',
-        }
-      });
+      // Add CORS headers
+      addCorsHeaders(c);
 
       const data = await response.json();
       return c.json(data, response.status as any);
     } catch (error) {
-      return c.json({ error: 'Internal server error' }, 500);
-    }
-  });
-
-  app.get('/meetings', async (c: Context) => {
-    console.log('📊 Legacy meetings (list) called');
-    try {
-      const url = new URL(`${env.LEGACY_MEETING_SERVICE}/meetings`);
-      Object.entries(c.req.query()).forEach(([key, value]) => {
-        url.searchParams.append(key, value);
-      });
-
-      const response = await fetch(url.toString(), {
-        headers: {
-          'Authorization': c.req.header('Authorization') || '',
-        }
-      });
-
-      const data = await response.json();
-      return c.json(data, response.status as any);
-    } catch (error) {
-      return c.json({ error: 'Internal server error' }, 500);
-    }
-  });
-
-  app.post('/meetings/:id/start', async (c: Context) => {
-    try {
-      const id = c.req.param('id');
-      const body = await c.req.json();
-
-      const response = await fetch(`${env.LEGACY_MEETING_SERVICE}/meetings/${id}/start`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': c.req.header('Authorization') || '',
-        },
-        body: JSON.stringify(body)
-      });
-
-      const data = await response.json();
-      return c.json(data, response.status as any);
-    } catch (error) {
+      addCorsHeaders(c);
       return c.json({ error: 'Internal server error' }, 500);
     }
   });
@@ -111,11 +64,8 @@ export async function setupLegacyRoutes(app: Hono) {
           c.header('Content-Disposition', contentDisposition);
         }
 
-        // Add CORS headers manually for file downloads
-        c.header('Access-Control-Allow-Origin', '*');
-        c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-        c.header('Access-Control-Expose-Headers', 'Content-Disposition, X-Response-Time');
+        // Add CORS headers for file downloads
+        addCorsHeaders(c);
 
         // Get the response body as ArrayBuffer to avoid stream issues
         const buffer = await response.arrayBuffer();
@@ -146,9 +96,13 @@ export async function setupLegacyRoutes(app: Hono) {
         body: JSON.stringify(body)
       });
 
+      // Add CORS headers
+      addCorsHeaders(c);
+
       const data = await response.json();
       return c.json(data, response.status as any);
     } catch (error) {
+      addCorsHeaders(c);
       return c.json({ error: 'Internal server error' }, 500);
     }
   });
@@ -175,11 +129,8 @@ export async function setupLegacyRoutes(app: Hono) {
         // Set content headers
         c.header('Content-Type', contentType);
 
-        // Add CORS headers manually for file downloads
-        c.header('Access-Control-Allow-Origin', '*');
-        c.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-        c.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With');
-        c.header('Access-Control-Expose-Headers', 'Content-Disposition, X-Response-Time');
+        // Add CORS headers for file downloads
+        addCorsHeaders(c);
 
         // Get the response body as ArrayBuffer to avoid stream issues
         const buffer = await response.arrayBuffer();
@@ -257,9 +208,6 @@ export async function setupLegacyRoutes(app: Hono) {
   console.log('✅ Legacy routes setup completed!');
   console.log('📋 Registered legacy routes in /api:');
   console.log('  POST /api/auth/login');
-  console.log('  GET /api/meetings/count');
-  console.log('  GET /api/meetings');
-  console.log('  POST /api/meetings/:id/start');
   console.log('  GET /api/associate/download-pdf/:id');
   console.log('  GET /api/associates/download-pdf/:id');
   console.log('  DELETE /api/associate/deactivate');

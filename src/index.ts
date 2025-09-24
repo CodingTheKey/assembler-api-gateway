@@ -7,10 +7,10 @@ import { HTTPException } from 'hono/http-exception';
 import { logger } from 'hono/logger';
 import { timing } from 'hono/timing';
 import { gatewayConfig, serviceConfig } from './config';
+import { legacyRouteCheckMiddleware } from './middlewares/legacy-route-check.middleware';
 import { RateLimitMiddleware } from './middlewares/rate-limit.middleware';
 import { requestLoggerMiddleware } from './middlewares/request-logger.middleware';
 import { verifyTokenServicesMiddleware } from './middlewares/verify-jwt.middleware';
-import { legacyRouteCheckMiddleware } from './middlewares/legacy-route-check.middleware';
 import { setupLegacyRoutes } from './routes/legacy-routes';
 import { NotFoundRoute } from './routes/not-found.route';
 import ProtectedRoutes from './routes/protected-routes/protected-routes.factory';
@@ -122,8 +122,6 @@ app.onError((err, c) => {
 
 NotFoundRoute.configRoute(app);
 
-console.log(`🚀 API Gateway starting on port ${gatewayConfig.port}`)
-console.log('📋 Available routes:')
 serviceConfig.forEach(service => {
   console.log(`  ${service.path} -> ${service.target}`)
 })
