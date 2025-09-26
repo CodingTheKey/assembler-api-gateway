@@ -6,6 +6,23 @@ if (process.env.NODE_ENV !== 'production' && !process.env.AWS_LAMBDA_FUNCTION_NA
   config();
 }
 
+const parseCorsOrigins = (origins?: string): string | string[] => {
+  if (!origins) {
+    return '*';
+  }
+
+  const parsed = origins
+    .split(',')
+    .map(origin => origin.trim())
+    .filter(Boolean);
+
+  if (parsed.length === 0 || (parsed.length === 1 && parsed[0] === '*')) {
+    return '*';
+  }
+
+  return parsed;
+};
+
 // Environment variables with fallbacks
 export const env = {
   // Basic config
@@ -14,7 +31,7 @@ export const env = {
   LOG_LEVEL: process.env.LOG_LEVEL || 'info',
 
   // CORS
-  CORS_ORIGINS: process.env.CORS_ORIGINS?.split(',') || ['*'],
+  CORS_ORIGINS: parseCorsOrigins(process.env.CORS_ORIGINS),
 
   // New services (assembleo-core)
   ASSOCIATES_SERVICE_URL: process.env.ASSOCIATES_SERVICE_URL || 'http://localhost:3001',

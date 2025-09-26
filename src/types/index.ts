@@ -7,7 +7,7 @@ export interface ServiceRoute {
 
 export interface GatewayConfig {
   port: string | number
-  corsOrigins: string[]
+  corsOrigins: string | string[]
   logLevel: string
 }
 
