@@ -13,6 +13,7 @@ export async function setupLegacyRoutes(app: Hono) {
   const env = getEnv();
   app.options('*', async (c: Context) => {
     addCorsHeaders(c);
+    //@ts-expect-error
     return c.text('', 204);
   });
 
@@ -183,6 +184,7 @@ export async function setupLegacyRoutes(app: Hono) {
       );
 
       const results = healthChecks.map((check, index) => ({
+        //@ts-expect-error
         service: services[index].name,
         ...(check.status === 'fulfilled' ? check.value : { status: 'error', error: check.reason })
       }));

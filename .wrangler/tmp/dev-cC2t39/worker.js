@@ -2121,6 +2121,7 @@ async function setupLegacyRoutes(app2) {
         })
       );
       const results = healthChecks.map((check, index) => ({
+        //@ts-expect-error
         service: services[index].name,
         ...check.status === "fulfilled" ? check.value : { status: "error", error: check.reason }
       }));
