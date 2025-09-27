@@ -1,7 +1,7 @@
 var __defProp = Object.defineProperty;
 var __name = (target, value) => __defProp(target, "name", { value, configurable: true });
 
-// .wrangler/tmp/bundle-uyxsc6/checked-fetch.js
+// .wrangler/tmp/bundle-m25Ici/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
   const url = request instanceof URL ? request : new URL(
@@ -2163,6 +2163,7 @@ var RedirectToService = class {
     try {
       const originalPath = c.req.path;
       const servicePath = originalPath.replace(`/api${pathPrefix}`, pathPrefix);
+      console.log(c, serviceUrl, pathPrefix, timeout);
       const headers = {};
       for (const [key, value] of Object.entries(c.req.header())) {
         if (!["host", "content-length"].includes(key.toLowerCase())) {
@@ -2678,7 +2679,7 @@ var jsonError = /* @__PURE__ */ __name(async (request, env, _ctx, middlewareCtx)
 }, "jsonError");
 var middleware_miniflare3_json_error_default = jsonError;
 
-// .wrangler/tmp/bundle-uyxsc6/middleware-insertion-facade.js
+// .wrangler/tmp/bundle-m25Ici/middleware-insertion-facade.js
 var __INTERNAL_WRANGLER_MIDDLEWARE__ = [
   middleware_ensure_req_body_drained_default,
   middleware_miniflare3_json_error_default
@@ -2710,7 +2711,7 @@ function __facade_invoke__(request, env, ctx, dispatch, finalMiddleware) {
 }
 __name(__facade_invoke__, "__facade_invoke__");
 
-// .wrangler/tmp/bundle-uyxsc6/middleware-loader.entry.ts
+// .wrangler/tmp/bundle-m25Ici/middleware-loader.entry.ts
 var __Facade_ScheduledController__ = class {
   constructor(scheduledTime, cron, noRetry) {
     this.scheduledTime = scheduledTime;

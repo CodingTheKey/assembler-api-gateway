@@ -6,6 +6,8 @@ export class RedirectToService {
       const originalPath = c.req.path;
       const servicePath = originalPath.replace(`/api${pathPrefix}`, pathPrefix);
 
+      console.log(c, serviceUrl, pathPrefix, timeout);
+
       const headers = {} as Record<string, string>;
       for (const [key, value] of Object.entries(c.req.header())) {
         if (!['host', 'content-length'].includes(key.toLowerCase())) {
