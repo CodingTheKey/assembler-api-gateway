@@ -4,15 +4,15 @@ var __name = (target, value) => __defProp(target, "name", { value, configurable:
 // .wrangler/tmp/bundle-m25Ici/checked-fetch.js
 var urls = /* @__PURE__ */ new Set();
 function checkURL(request, init) {
-  const url2 = request instanceof URL ? request : new URL(
+  const url = request instanceof URL ? request : new URL(
     (typeof request === "string" ? new Request(request, init) : request).url
   );
-  if (url2.port && url2.port !== "443" && url2.protocol === "https:") {
-    if (!urls.has(url2.toString())) {
-      urls.add(url2.toString());
+  if (url.port && url.port !== "443" && url.protocol === "https:") {
+    if (!urls.has(url.toString())) {
+      urls.add(url.toString());
       console.warn(
         `WARNING: known issue with \`fetch()\` requests to custom HTTPS ports in published Workers:
- - ${url2.toString()} - the custom port will be ignored when the Worker is published using the \`wrangler deploy\` command.
+ - ${url.toString()} - the custom port will be ignored when the Worker is published using the \`wrangler deploy\` command.
 `
       );
     }
@@ -214,20 +214,20 @@ var tryDecode = /* @__PURE__ */ __name((str, decoder) => {
 }, "tryDecode");
 var tryDecodeURI = /* @__PURE__ */ __name((str) => tryDecode(str, decodeURI), "tryDecodeURI");
 var getPath = /* @__PURE__ */ __name((request) => {
-  const url2 = request.url;
-  const start = url2.indexOf("/", url2.indexOf(":") + 4);
+  const url = request.url;
+  const start = url.indexOf("/", url.indexOf(":") + 4);
   let i = start;
-  for (; i < url2.length; i++) {
-    const charCode = url2.charCodeAt(i);
+  for (; i < url.length; i++) {
+    const charCode = url.charCodeAt(i);
     if (charCode === 37) {
-      const queryIndex = url2.indexOf("?", i);
-      const path = url2.slice(start, queryIndex === -1 ? void 0 : queryIndex);
+      const queryIndex = url.indexOf("?", i);
+      const path = url.slice(start, queryIndex === -1 ? void 0 : queryIndex);
       return tryDecodeURI(path.includes("%25") ? path.replace(/%25/g, "%2525") : path);
     } else if (charCode === 63) {
       break;
     }
   }
-  return url2.slice(start, i);
+  return url.slice(start, i);
 }, "getPath");
 var getPathNoStrict = /* @__PURE__ */ __name((request) => {
   const result = getPath(request);
@@ -275,39 +275,39 @@ var _decodeURI = /* @__PURE__ */ __name((value) => {
   }
   return value.indexOf("%") !== -1 ? tryDecode(value, decodeURIComponent_) : value;
 }, "_decodeURI");
-var _getQueryParam = /* @__PURE__ */ __name((url2, key, multiple) => {
+var _getQueryParam = /* @__PURE__ */ __name((url, key, multiple) => {
   let encoded;
   if (!multiple && key && !/[%+]/.test(key)) {
-    let keyIndex2 = url2.indexOf(`?${key}`, 8);
+    let keyIndex2 = url.indexOf(`?${key}`, 8);
     if (keyIndex2 === -1) {
-      keyIndex2 = url2.indexOf(`&${key}`, 8);
+      keyIndex2 = url.indexOf(`&${key}`, 8);
     }
     while (keyIndex2 !== -1) {
-      const trailingKeyCode = url2.charCodeAt(keyIndex2 + key.length + 1);
+      const trailingKeyCode = url.charCodeAt(keyIndex2 + key.length + 1);
       if (trailingKeyCode === 61) {
         const valueIndex = keyIndex2 + key.length + 2;
-        const endIndex = url2.indexOf("&", valueIndex);
-        return _decodeURI(url2.slice(valueIndex, endIndex === -1 ? void 0 : endIndex));
+        const endIndex = url.indexOf("&", valueIndex);
+        return _decodeURI(url.slice(valueIndex, endIndex === -1 ? void 0 : endIndex));
       } else if (trailingKeyCode == 38 || isNaN(trailingKeyCode)) {
         return "";
       }
-      keyIndex2 = url2.indexOf(`&${key}`, keyIndex2 + 1);
+      keyIndex2 = url.indexOf(`&${key}`, keyIndex2 + 1);
     }
-    encoded = /[%+]/.test(url2);
+    encoded = /[%+]/.test(url);
     if (!encoded) {
       return void 0;
     }
   }
   const results = {};
-  encoded ??= /[%+]/.test(url2);
-  let keyIndex = url2.indexOf("?", 8);
+  encoded ??= /[%+]/.test(url);
+  let keyIndex = url.indexOf("?", 8);
   while (keyIndex !== -1) {
-    const nextKeyIndex = url2.indexOf("&", keyIndex + 1);
-    let valueIndex = url2.indexOf("=", keyIndex);
+    const nextKeyIndex = url.indexOf("&", keyIndex + 1);
+    let valueIndex = url.indexOf("=", keyIndex);
     if (valueIndex > nextKeyIndex && nextKeyIndex !== -1) {
       valueIndex = -1;
     }
-    let name = url2.slice(
+    let name = url.slice(
       keyIndex + 1,
       valueIndex === -1 ? nextKeyIndex === -1 ? void 0 : nextKeyIndex : valueIndex
     );
@@ -322,7 +322,7 @@ var _getQueryParam = /* @__PURE__ */ __name((url2, key, multiple) => {
     if (valueIndex === -1) {
       value = "";
     } else {
-      value = url2.slice(valueIndex + 1, nextKeyIndex === -1 ? void 0 : nextKeyIndex);
+      value = url.slice(valueIndex + 1, nextKeyIndex === -1 ? void 0 : nextKeyIndex);
       if (encoded) {
         value = _decodeURI(value);
       }
@@ -340,8 +340,8 @@ var _getQueryParam = /* @__PURE__ */ __name((url2, key, multiple) => {
   return key ? results[key] : results;
 }, "_getQueryParam");
 var getQueryParam = _getQueryParam;
-var getQueryParams = /* @__PURE__ */ __name((url2, key) => {
-  return _getQueryParam(url2, key, true);
+var getQueryParams = /* @__PURE__ */ __name((url, key) => {
+  return _getQueryParam(url, key, true);
 }, "getQueryParams");
 var decodeURIComponent_ = decodeURIComponent;
 
@@ -824,9 +824,9 @@ var Hono = /* @__PURE__ */ __name(class {
       const mergedPath = mergePath(this._basePath, path);
       const pathPrefixLength = mergedPath === "/" ? 0 : mergedPath.length;
       return (request) => {
-        const url2 = new URL(request.url);
-        url2.pathname = url2.pathname.slice(pathPrefixLength) || "/";
-        return new Request(url2, request);
+        const url = new URL(request.url);
+        url.pathname = url.pathname.slice(pathPrefixLength) || "/";
+        return new Request(url, request);
       };
     })();
     const handler = /* @__PURE__ */ __name(async (c, next) => {
@@ -1692,8 +1692,8 @@ async function log(fn, prefix, method, path, status = 0, elapsed) {
 __name(log, "log");
 var logger = /* @__PURE__ */ __name((fn = console.log) => {
   return /* @__PURE__ */ __name(async function logger2(c, next) {
-    const { method, url: url2 } = c.req;
-    const path = url2.slice(url2.indexOf("/", 8));
+    const { method, url } = c.req;
+    const path = url.slice(url.indexOf("/", 8));
     await log(fn, "<--", method, path);
     const start = Date.now();
     await next();
@@ -2160,10 +2160,11 @@ __name(NotFoundRoute, "NotFoundRoute");
 // src/lib/redirect-to-service.ts
 var RedirectToService = class {
   static async handle(c, serviceUrl, pathPrefix, timeout = 5e3) {
+    const originalPath = c.req.path;
+    const servicePath = originalPath.replace(`/api${pathPrefix}`, pathPrefix);
+    let url;
     try {
-      const originalPath = c.req.path;
-      const servicePath2 = originalPath.replace(`/api${pathPrefix}`, pathPrefix);
-      console.log("RedirectToService params:", { serviceUrl, pathPrefix, timeout, originalPath, servicePath: servicePath2 });
+      console.log("RedirectToService params:", { serviceUrl, pathPrefix, timeout, originalPath, servicePath });
       const headers = {};
       for (const [key, value] of Object.entries(c.req.header())) {
         if (!["host", "content-length"].includes(key.toLowerCase())) {
@@ -2176,16 +2177,16 @@ var RedirectToService = class {
       if (!headers["Content-Type"] && c.req.method !== "GET") {
         headers["Content-Type"] = "application/json";
       }
-      const url2 = new URL(servicePath2, serviceUrl);
-      console.log("Final URL:", url2.toString());
+      url = new URL(servicePath, serviceUrl);
+      console.log("Final URL:", url.toString());
       if (c.req.queries()) {
         for (const [key, value] of Object.entries(c.req.queries())) {
           if (Array.isArray(value)) {
             for (const v of value) {
-              url2.searchParams.append(key, String(v));
+              url.searchParams.append(key, String(v));
             }
           } else if (value !== void 0 && value !== null) {
-            url2.searchParams.append(key, String(value));
+            url.searchParams.append(key, String(value));
           }
         }
       }
@@ -2199,7 +2200,7 @@ var RedirectToService = class {
       if (!["GET", "HEAD"].includes(c.req.method)) {
         init.body = await c.req.arrayBuffer();
       }
-      const response = await fetch(url2.toString(), init);
+      const response = await fetch(url.toString(), init);
       clearTimeout(timeoutId);
       const proxiedResponse = new Response(response.body, {
         status: response.status,
@@ -2222,15 +2223,15 @@ var RedirectToService = class {
         }, 504);
       }
       console.error("Service connection error:", {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         serviceUrl,
         servicePath,
-        finalUrl: url?.toString()
+        finalUrl: url?.toString() || "URL not constructed"
       });
       return c.json({
         error: "Service temporarily unavailable",
         message: "Failed to connect to target service",
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
         timestamp: (/* @__PURE__ */ new Date()).toISOString()
       }, 503);
     }

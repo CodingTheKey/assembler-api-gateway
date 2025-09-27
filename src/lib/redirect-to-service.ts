@@ -2,10 +2,11 @@ import { Context } from "hono";
 
 export class RedirectToService {
   static async handle(c: Context, serviceUrl: string, pathPrefix: string, timeout: number = 5000) {
-    try {
-      const originalPath = c.req.path;
-      const servicePath = originalPath.replace(`/api${pathPrefix}`, pathPrefix);
+    const originalPath = c.req.path;
+    const servicePath = originalPath.replace(`/api${pathPrefix}`, pathPrefix);
+    let url: URL;
 
+    try {
       console.log('RedirectToService params:', { serviceUrl, pathPrefix, timeout, originalPath, servicePath });
 
       const headers = {} as Record<string, string>;
@@ -24,7 +25,7 @@ export class RedirectToService {
         headers['Content-Type'] = 'application/json';
       }
 
-      const url = new URL(servicePath, serviceUrl);
+      url = new URL(servicePath, serviceUrl);
       console.log('Final URL:', url.toString());
 
       if (c.req.queries()) {
@@ -80,16 +81,16 @@ export class RedirectToService {
       }
 
       console.error('Service connection error:', {
-        error: error.message,
+        error: error instanceof Error ? error.message : String(error),
         serviceUrl,
         servicePath,
-        finalUrl: url?.toString()
+        finalUrl: url?.toString() || 'URL not constructed'
       });
 
       return c.json({
         error: 'Service temporarily unavailable',
         message: 'Failed to connect to target service',
-        details: error.message,
+        details: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString()
       }, 503);
     }
