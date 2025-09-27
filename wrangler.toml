@@ -1,3 +1,31 @@
 name = "assembleo-api-gateway"
 main = "src/worker.ts"
 compatibility_date = "2024-07-16"
+
+# Environment variables for development
+[env.development.vars]
+NODE_ENV = "development"
+PORT = "8787"
+LOG_LEVEL = "debug"
+CORS_ORIGINS = "*"
+ASSOCIATES_SERVICE_URL = "http://localhost:3001"
+UNITIES_SERVICE_URL = "http://localhost:3001"
+MEETINGS_SERVICE_URL = "http://localhost:3001"
+LEGACY_AUTH_SERVICE = "https://auth-ms.josecorte-dev.workers.dev"
+LEGACY_MEETING_SERVICE = "https://meeting-ms.josecorte-dev.workers.dev"
+LEGACY_ASSOCIATE_SERVICE = "https://associate-ms.josecorte-dev.workers.dev"
+LEGACY_UNITY_SERVICE = "https://unity-ms.josecorte-dev.workers.dev"
+
+# Environment variables for production
+[env.production.vars]
+NODE_ENV = "production"
+PORT = "8787"
+LOG_LEVEL = "info"
+CORS_ORIGINS = "*"
+ASSOCIATES_SERVICE_URL = "http://15.228.221.240/"
+UNITIES_SERVICE_URL = "http://15.228.221.240/"
+MEETINGS_SERVICE_URL = "http://15.228.221.240/"
+LEGACY_AUTH_SERVICE = "https://auth-ms.production.workers.dev"
+LEGACY_MEETING_SERVICE = "https://meeting-ms.production.workers.dev"
+LEGACY_ASSOCIATE_SERVICE = "https://associate-ms.production.workers.dev"
+LEGACY_UNITY_SERVICE = "https://unity-ms.production.workers.dev"

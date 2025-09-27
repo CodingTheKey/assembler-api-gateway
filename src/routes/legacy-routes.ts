@@ -11,9 +11,6 @@ function addCorsHeaders(c: Context) {
 
 export async function setupLegacyRoutes(app: Hono) {
   const env = getEnv();
-  console.log('🔧 Setting up legacy routes...');
-
-  // Handle OPTIONS requests for CORS preflight
   app.options('*', async (c: Context) => {
     addCorsHeaders(c);
     return c.text('', 204);
@@ -21,7 +18,6 @@ export async function setupLegacyRoutes(app: Hono) {
 
   // Auth routes
   app.post('/auth/login', async (c: Context) => {
-    console.log('🔐 Legacy auth/login called');
     try {
       const body = await c.req.json();
       const response = await fetch(`${env.LEGACY_AUTH_SERVICE}/auth/login`, {
@@ -109,14 +105,9 @@ export async function setupLegacyRoutes(app: Hono) {
   });
 
   // Unity routes
-  console.log('📁 Registering /file/:key route...');
   app.get('/file/:key', async (c: Context) => {
-    console.log('📁 Legacy /file/:key route called!');
     try {
       const key = c.req.param('key');
-
-      console.log('Fetching file with key:', key);
-      console.log('Using env.LEGACY_UNITY_SERVICE:', env.LEGACY_UNITY_SERVICE);
 
       const response = await fetch(`${env.LEGACY_UNITY_SERVICE}/file/${key}`, {
         headers: {
@@ -210,13 +201,4 @@ export async function setupLegacyRoutes(app: Hono) {
       }, 500);
     }
   });
-
-  console.log('✅ Legacy routes setup completed!');
-  console.log('📋 Registered legacy routes in /api:');
-  console.log('  POST /api/auth/login');
-  console.log('  GET /api/associate/download-pdf/:id');
-  console.log('  GET /api/associates/download-pdf/:id');
-  console.log('  DELETE /api/associate/deactivate');
-  console.log('  GET /api/file/:key');
-  console.log('  GET /api/legacy-health');
 }

@@ -4,7 +4,6 @@ import { HTTPException } from 'hono/http-exception';
 import { logger } from 'hono/logger';
 import { timing } from 'hono/timing';
 import { getGatewayConfig, getServiceConfig } from './config';
-import { getEnv } from './env';
 import { legacyRouteCheckMiddleware } from './middlewares/legacy-route-check.middleware';
 import { RateLimitMiddleware } from './middlewares/rate-limit.middleware';
 import { requestLoggerMiddleware } from './middlewares/request-logger.middleware';
@@ -123,29 +122,8 @@ export const createApp = () => {
 
   NotFoundRoute.configRoute(app);
 
-  services.forEach(service => {
-    console.log(`  ${service.path} -> ${service.target}`);
-  });
-
   return app;
 };
 
-const isNodeRuntime = typeof process !== 'undefined' && process.release?.name === 'node';
-
-if (isNodeRuntime) {
-  const env = getEnv();
-
-  if (env.NODE_ENV !== 'production') {
-    const { serve } = await import('@hono/node-server');
-    const app = createApp();
-
-    serve({
-      fetch: app.fetch,
-      port: Number(env.PORT),
-    });
-
-    console.log(`🌐 Server running at http://localhost:${env.PORT}`);
-  }
-}
 
 export default createApp;

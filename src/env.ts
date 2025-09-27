@@ -64,14 +64,6 @@ const maybeLogEnv = (env: RuntimeEnv) => {
   }
 
   loggedEnv = true;
-
-  console.log('🔧 Environment configuration loaded:');
-  console.log('  NODE_ENV:', env.NODE_ENV);
-  console.log('  PORT:', env.PORT);
-  console.log('  LEGACY_UNITY_SERVICE:', env.LEGACY_UNITY_SERVICE);
-  console.log('  LEGACY_AUTH_SERVICE:', env.LEGACY_AUTH_SERVICE);
-  console.log('  LEGACY_MEETING_SERVICE:', env.LEGACY_MEETING_SERVICE);
-  console.log('  LEGACY_ASSOCIATE_SERVICE:', env.LEGACY_ASSOCIATE_SERVICE);
 };
 
 export const initEnv = (source: Record<string, string | undefined>): void => {

@@ -13,6 +13,15 @@ export class RedirectToService {
         }
       }
 
+      // Ensure required headers for EC2 services
+      if (!headers['Authorization'] && c.req.header('Authorization')) {
+        headers['Authorization'] = c.req.header('Authorization')!;
+      }
+
+      if (!headers['Content-Type'] && c.req.method !== 'GET') {
+        headers['Content-Type'] = 'application/json';
+      }
+
       const url = new URL(servicePath, serviceUrl);
 
       if (c.req.queries()) {
@@ -60,8 +69,6 @@ export class RedirectToService {
 
       return proxiedResponse;
     } catch (error) {
-      console.error('Redirect to service error:', error);
-
       if (error instanceof Error && error.name === 'AbortError') {
         return c.json({
           error: 'Request timeout',
