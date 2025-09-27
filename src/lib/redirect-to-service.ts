@@ -6,7 +6,7 @@ export class RedirectToService {
       const originalPath = c.req.path;
       const servicePath = originalPath.replace(`/api${pathPrefix}`, pathPrefix);
 
-      console.log(c, serviceUrl, pathPrefix, timeout);
+      console.log('RedirectToService params:', { serviceUrl, pathPrefix, timeout, originalPath, servicePath });
 
       const headers = {} as Record<string, string>;
       for (const [key, value] of Object.entries(c.req.header())) {
@@ -25,6 +25,7 @@ export class RedirectToService {
       }
 
       const url = new URL(servicePath, serviceUrl);
+      console.log('Final URL:', url.toString());
 
       if (c.req.queries()) {
         for (const [key, value] of Object.entries(c.req.queries())) {
@@ -78,9 +79,17 @@ export class RedirectToService {
         }, 504);
       }
 
+      console.error('Service connection error:', {
+        error: error.message,
+        serviceUrl,
+        servicePath,
+        finalUrl: url?.toString()
+      });
+
       return c.json({
         error: 'Service temporarily unavailable',
         message: 'Failed to connect to target service',
+        details: error.message,
         timestamp: new Date().toISOString()
       }, 503);
     }
