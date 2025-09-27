@@ -1,12 +1,10 @@
-// Load environment configuration first
-import './env';
-
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { HTTPException } from 'hono/http-exception';
 import { logger } from 'hono/logger';
 import { timing } from 'hono/timing';
-import { gatewayConfig, serviceConfig } from './config';
+import { getGatewayConfig, getServiceConfig } from './config';
+import { getEnv } from './env';
 import { legacyRouteCheckMiddleware } from './middlewares/legacy-route-check.middleware';
 import { RateLimitMiddleware } from './middlewares/rate-limit.middleware';
 import { requestLoggerMiddleware } from './middlewares/request-logger.middleware';
@@ -16,48 +14,51 @@ import { NotFoundRoute } from './routes/not-found.route';
 import ProtectedRoutes from './routes/protected-routes/protected-routes.factory';
 import { swaggerConfig } from './swagger/swagger-config';
 
-const app = new Hono();
+export const createApp = () => {
+  const app = new Hono();
+  const gatewayConfig = getGatewayConfig();
+  const services = getServiceConfig();
 
-app.use('*', timing());
-app.use('*', logger());
-app.use('*', cors({
-  origin: gatewayConfig.corsOrigins,
-  allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-  allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  exposeHeaders: ['Content-Disposition', 'X-Response-Time'],
-  credentials: false,
-}));
+  app.use('*', timing());
+  app.use('*', logger());
+  app.use('*', cors({
+    origin: gatewayConfig.corsOrigins,
+    allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    exposeHeaders: ['Content-Disposition', 'X-Response-Time'],
+    credentials: false,
+  }));
 
-app.use('*', requestLoggerMiddleware);
-app.use('*', RateLimitMiddleware);
+  app.use('*', requestLoggerMiddleware);
+  app.use('*', RateLimitMiddleware);
 
-const protectedRoutes = new Hono();
-protectedRoutes.use('*', verifyTokenServicesMiddleware);
-protectedRoutes.use('*', legacyRouteCheckMiddleware);
+  const protectedRoutes = new Hono();
+  protectedRoutes.use('*', verifyTokenServicesMiddleware);
+  protectedRoutes.use('*', legacyRouteCheckMiddleware);
 
-// Setup legacy routes FIRST (more specific routes)
-setupLegacyRoutes(protectedRoutes);
+  // Setup legacy routes FIRST (more specific routes)
+  setupLegacyRoutes(protectedRoutes);
 
-// Then setup the general protected routes
-ProtectedRoutes.ProtectedRoutes.configRoute(protectedRoutes);
+  // Then setup the general protected routes
+  ProtectedRoutes.ProtectedRoutes.configRoute(protectedRoutes, services);
 
-app.route('/api', protectedRoutes);
+  app.route('/api', protectedRoutes);
 
-app.get('/health', (c) => {
-  return c.json({
-    status: 'healthy',
-    timestamp: new Date().toISOString(),
-    version: '1.0.0',
-    services: serviceConfig.map(s => ({ path: s.path, target: s.target }))
+  app.get('/health', (c) => {
+    return c.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      version: '1.0.0',
+      services: services.map(s => ({ path: s.path, target: s.target })),
+    });
   });
-});
 
-app.get('/swagger.json', (c) => {
-  return c.json(swaggerConfig);
-});
+  app.get('/swagger.json', (c) => {
+    return c.json(swaggerConfig);
+  });
 
-app.get('/docs', (c) => {
-  const html = `
+  app.get('/docs', (c) => {
+    const html = `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -104,38 +105,47 @@ app.get('/docs', (c) => {
 </body>
 </html>`;
 
-  return c.html(html);
-});
+    return c.html(html);
+  });
 
-app.onError((err, c) => {
-  console.error('Gateway error:', err);
+  app.onError((err, c) => {
+    console.error('Gateway error:', err);
 
-  if (err instanceof HTTPException) {
-    return c.json({ error: err.message }, err.status);
+    if (err instanceof HTTPException) {
+      return c.json({ error: err.message }, err.status);
+    }
+
+    return c.json({
+      error: 'Internal server error',
+      requestId: c.req.header('X-Request-ID') || 'unknown',
+    }, 500);
+  });
+
+  NotFoundRoute.configRoute(app);
+
+  services.forEach(service => {
+    console.log(`  ${service.path} -> ${service.target}`);
+  });
+
+  return app;
+};
+
+const isNodeRuntime = typeof process !== 'undefined' && process.release?.name === 'node';
+
+if (isNodeRuntime) {
+  const env = getEnv();
+
+  if (env.NODE_ENV !== 'production') {
+    const { serve } = await import('@hono/node-server');
+    const app = createApp();
+
+    serve({
+      fetch: app.fetch,
+      port: Number(env.PORT),
+    });
+
+    console.log(`🌐 Server running at http://localhost:${env.PORT}`);
   }
-
-  return c.json({
-    error: 'Internal server error',
-    requestId: c.req.header('X-Request-ID') || 'unknown'
-  }, 500);
-});
-
-NotFoundRoute.configRoute(app);
-
-serviceConfig.forEach(service => {
-  console.log(`  ${service.path} -> ${service.target}`)
-})
-
-// For local development
-if (process.env.NODE_ENV !== 'production') {
-  const { serve } = await import('@hono/node-server')
-
-  serve({
-    fetch: app.fetch,
-    port: Number(gatewayConfig.port)
-  })
-
-  console.log(`🌐 Server running at http://localhost:${gatewayConfig.port}`)
 }
 
-export default app;
+export default createApp;

@@ -30,28 +30,35 @@ export class RedirectToService {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-      const request = new Request(url.href, {
+      const init: RequestInit = {
         method: c.req.method,
         headers,
-        body: ['GET', 'HEAD'].includes(c.req.method) ? null : await c.req.arrayBuffer(),
-        signal: controller.signal
-      });
+        signal: controller.signal,
+      };
 
-      const response = await fetch(request);
+      if (!['GET', 'HEAD'].includes(c.req.method)) {
+        init.body = await c.req.arrayBuffer();
+      }
+
+      const response = await fetch(url.toString(), init);
       clearTimeout(timeoutId);
 
-      const responseHeaders = {} as Record<string, string>;
+      const proxiedResponse = new Response(response.body, {
+        status: response.status,
+        statusText: response.statusText
+      });
+
       for (const [key, value] of response.headers.entries()) {
         if (!['transfer-encoding', 'connection'].includes(key.toLowerCase())) {
-          responseHeaders[key] = value;
+          proxiedResponse.headers.set(key, value);
         }
       }
 
-      return new Response(response.body, {
-        status: response.status,
-        statusText: response.statusText,
-        headers: responseHeaders
-      });
+      for (const [key, value] of c.res.headers.entries()) {
+        proxiedResponse.headers.set(key, value);
+      }
+
+      return proxiedResponse;
     } catch (error) {
       console.error('Redirect to service error:', error);
 

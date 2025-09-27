@@ -35,16 +35,27 @@ export const serviceConfig: ServiceRoute[] = [
 
 ## Uso
 
-### Desenvolvimento
+### Desenvolvimento (Cloudflare Workers)
 ```bash
+npm install
 npm run dev
 ```
 
-### Produção
+O comando acima usa `wrangler dev`, que emula o ambiente dos Workers localmente. Para sobrescrever variáveis de ambiente apenas na sua máquina, crie um arquivo `wrangler.toml` local ou utilize `--var`/`--binding` conforme necessário.
+
+### Desenvolvimento com servidor Node (opcional)
 ```bash
-npm run build
-npm start
+npm run dev:node
 ```
+
+Esse modo continua disponível apenas para testes locais básicos e usa o servidor Node da Hono.
+
+### Deploy no Cloudflare Workers
+```bash
+npm run deploy
+```
+
+> Certifique-se de executar `npx wrangler login` antes do deploy e de configurar as variáveis de ambiente via `wrangler.toml` ou `wrangler secret put`.
 
 ## Endpoints
 

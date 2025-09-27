@@ -1,9 +1,15 @@
-// Environment configuration for both local development and AWS Lambda
-import { config } from 'dotenv';
-
-// Load .env file only in development (not in Lambda)
-if (process.env.NODE_ENV !== 'production' && !process.env.AWS_LAMBDA_FUNCTION_NAME) {
-  config();
+export interface RuntimeEnv {
+  NODE_ENV: string;
+  PORT: string;
+  LOG_LEVEL: string;
+  CORS_ORIGINS: string | string[];
+  ASSOCIATES_SERVICE_URL: string;
+  UNITIES_SERVICE_URL: string;
+  MEETINGS_SERVICE_URL: string;
+  LEGACY_AUTH_SERVICE: string;
+  LEGACY_MEETING_SERVICE: string;
+  LEGACY_ASSOCIATE_SERVICE: string;
+  LEGACY_UNITY_SERVICE: string;
 }
 
 const parseCorsOrigins = (origins?: string): string | string[] => {
@@ -23,39 +29,65 @@ const parseCorsOrigins = (origins?: string): string | string[] => {
   return parsed;
 };
 
-// Environment variables with fallbacks
-export const env = {
-  // Basic config
-  NODE_ENV: process.env.NODE_ENV || 'development',
-  PORT: process.env.PORT || '3000',
-  LOG_LEVEL: process.env.LOG_LEVEL || 'info',
+const buildEnv = (source: Record<string, string | undefined>): RuntimeEnv => ({
+  NODE_ENV: source.NODE_ENV || 'development',
+  PORT: source.PORT || '3000',
+  LOG_LEVEL: source.LOG_LEVEL || 'info',
+  CORS_ORIGINS: parseCorsOrigins(source.CORS_ORIGINS),
+  ASSOCIATES_SERVICE_URL: source.ASSOCIATES_SERVICE_URL || 'http://localhost:3001',
+  UNITIES_SERVICE_URL: source.UNITIES_SERVICE_URL || 'http://localhost:3001',
+  MEETINGS_SERVICE_URL: source.MEETINGS_SERVICE_URL || 'http://localhost:3001',
+  LEGACY_AUTH_SERVICE: source.LEGACY_AUTH_SERVICE || 'https://auth-ms.josecorte-dev.workers.dev',
+  LEGACY_MEETING_SERVICE: source.LEGACY_MEETING_SERVICE || 'https://meeting-ms.josecorte-dev.workers.dev',
+  LEGACY_ASSOCIATE_SERVICE: source.LEGACY_ASSOCIATE_SERVICE || 'https://associate-ms.josecorte-dev.workers.dev',
+  LEGACY_UNITY_SERVICE: source.LEGACY_UNITY_SERVICE || 'http://unity-ms.josecorte-dev.workers.dev',
+});
 
-  // CORS
-  CORS_ORIGINS: parseCorsOrigins(process.env.CORS_ORIGINS),
+let runtimeEnv: RuntimeEnv | null = null;
+let loggedEnv = false;
 
-  // New services (assembleo-core)
-  ASSOCIATES_SERVICE_URL: process.env.ASSOCIATES_SERVICE_URL || 'http://localhost:3001',
-  UNITIES_SERVICE_URL: process.env.UNITIES_SERVICE_URL || 'http://localhost:3001',
-  MEETINGS_SERVICE_URL: process.env.MEETINGS_SERVICE_URL || 'http://localhost:3001',
+const detectSource = (): Record<string, string | undefined> => {
+  if (typeof globalThis !== 'undefined' && (globalThis as any).__ENV_BINDINGS) {
+    return (globalThis as any).__ENV_BINDINGS as Record<string, string | undefined>;
+  }
 
-  // Legacy services (assembleo-backend)
-  LEGACY_AUTH_SERVICE: process.env.LEGACY_AUTH_SERVICE || 'https://auth-ms.josecorte-dev.workers.dev',
-  LEGACY_MEETING_SERVICE: process.env.LEGACY_MEETING_SERVICE || 'https://meeting-ms.josecorte-dev.workers.dev',
-  LEGACY_ASSOCIATE_SERVICE: process.env.LEGACY_ASSOCIATE_SERVICE || 'https://associate-ms.josecorte-dev.workers.dev',
-  LEGACY_UNITY_SERVICE: process.env.LEGACY_UNITY_SERVICE || 'http://unity-ms.josecorte-dev.workers.dev',
+  if (typeof process !== 'undefined' && typeof process.env === 'object') {
+    return process.env as Record<string, string | undefined>;
+  }
 
-  // AWS Lambda detection
-  IS_LAMBDA: !!process.env.AWS_LAMBDA_FUNCTION_NAME,
+  return {};
 };
 
-// Debug logging for development
-if (env.NODE_ENV === 'development') {
+const maybeLogEnv = (env: RuntimeEnv) => {
+  if (loggedEnv || env.NODE_ENV !== 'development') {
+    return;
+  }
+
+  loggedEnv = true;
+
   console.log('🔧 Environment configuration loaded:');
   console.log('  NODE_ENV:', env.NODE_ENV);
-  console.log('  IS_LAMBDA:', env.IS_LAMBDA);
   console.log('  PORT:', env.PORT);
   console.log('  LEGACY_UNITY_SERVICE:', env.LEGACY_UNITY_SERVICE);
   console.log('  LEGACY_AUTH_SERVICE:', env.LEGACY_AUTH_SERVICE);
   console.log('  LEGACY_MEETING_SERVICE:', env.LEGACY_MEETING_SERVICE);
   console.log('  LEGACY_ASSOCIATE_SERVICE:', env.LEGACY_ASSOCIATE_SERVICE);
-}
+};
+
+export const initEnv = (source: Record<string, string | undefined>): void => {
+  if (typeof globalThis !== 'undefined') {
+    (globalThis as any).__ENV_BINDINGS = source;
+  }
+
+  runtimeEnv = buildEnv(source);
+  maybeLogEnv(runtimeEnv);
+};
+
+export const getEnv = (): RuntimeEnv => {
+  if (!runtimeEnv) {
+    runtimeEnv = buildEnv(detectSource());
+    maybeLogEnv(runtimeEnv);
+  }
+
+  return runtimeEnv;
+};

@@ -1,5 +1,5 @@
 import { Context, Hono } from 'hono';
-import { env } from '../env';
+import { getEnv } from '../env';
 
 // Helper function to add CORS headers to legacy route responses
 function addCorsHeaders(c: Context) {
@@ -10,6 +10,7 @@ function addCorsHeaders(c: Context) {
 }
 
 export async function setupLegacyRoutes(app: Hono) {
+  const env = getEnv();
   console.log('🔧 Setting up legacy routes...');
 
   // Handle OPTIONS requests for CORS preflight
@@ -165,7 +166,7 @@ export async function setupLegacyRoutes(app: Hono) {
   app.get('/legacy-health', async (c: Context) => {
     try {
       const services = [
-        { name: 'auth', url: `${LEGACY_AUTH_SERVICE}/health` },
+        { name: 'auth', url: `${env.LEGACY_AUTH_SERVICE}/health` },
         { name: 'meeting', url: `${env.LEGACY_MEETING_SERVICE}/health` },
         { name: 'associate', url: `${env.LEGACY_ASSOCIATE_SERVICE}/health` },
         { name: 'unity', url: `${env.LEGACY_UNITY_SERVICE}/health` }
@@ -173,14 +174,19 @@ export async function setupLegacyRoutes(app: Hono) {
 
       const healthChecks = await Promise.allSettled(
         services.map(async (service) => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 5000);
+
           try {
             const response = await fetch(service.url, {
-              signal: AbortSignal.timeout(5000)
+              signal: controller.signal
             });
             const data = await response.json();
             return { service: service.name, status: 'healthy', data };
           } catch (error) {
             return { service: service.name, status: 'unhealthy', error: error instanceof Error ? error.message : 'Unknown error' };
+          } finally {
+            clearTimeout(timeoutId);
           }
         })
       );
