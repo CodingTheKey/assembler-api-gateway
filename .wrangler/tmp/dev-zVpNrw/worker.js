@@ -2172,7 +2172,7 @@ var RedirectToService = class {
       console.log("RedirectToService params:", { serviceUrl, pathPrefix, timeout, originalPath, servicePath });
       const headers = {};
       for (const [key, value] of Object.entries(c.req.header())) {
-        if (!["host", "content-length"].includes(key.toLowerCase())) {
+        if (!["host", "content-length", "connection"].includes(key.toLowerCase())) {
           headers[key] = value;
         }
       }
@@ -2235,7 +2235,7 @@ var RedirectToService = class {
         errorStack: error instanceof Error ? error.stack : "No stack",
         serviceUrl,
         servicePath,
-        finalUrl: url?.toString() || "URL not constructed",
+        finalUrl: url ? url.toString() : "URL not constructed",
         cause: error instanceof Error ? error.cause : "No cause"
       });
       return c.json({

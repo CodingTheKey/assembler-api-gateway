@@ -11,7 +11,7 @@ export class RedirectToService {
 
       const headers = {} as Record<string, string>;
       for (const [key, value] of Object.entries(c.req.header())) {
-        if (!['host', 'content-length'].includes(key.toLowerCase())) {
+        if (!['host', 'content-length', 'connection'].includes(key.toLowerCase())) {
           headers[key] = value;
         }
       }
@@ -88,7 +88,7 @@ export class RedirectToService {
         errorStack: error instanceof Error ? error.stack : 'No stack',
         serviceUrl,
         servicePath,
-        finalUrl: url?.toString() || 'URL not constructed',
+        finalUrl: url ? url.toString() : 'URL not constructed',
         cause: error instanceof Error ? error.cause : 'No cause'
       });
 
