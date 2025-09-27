@@ -53,8 +53,10 @@ export class RedirectToService {
         init.body = await c.req.arrayBuffer();
       }
 
+      console.log('Making fetch request to:', url.toString(), 'with headers:', headers);
       const response = await fetch(url.toString(), init);
       clearTimeout(timeoutId);
+      console.log('Response received:', response.status, response.statusText);
 
       const proxiedResponse = new Response(response.body, {
         status: response.status,
@@ -80,11 +82,14 @@ export class RedirectToService {
         }, 504);
       }
 
-      console.error('Service connection error:', {
+      console.error('Service connection error details:', {
         error: error instanceof Error ? error.message : String(error),
+        errorName: error instanceof Error ? error.name : 'Unknown',
+        errorStack: error instanceof Error ? error.stack : 'No stack',
         serviceUrl,
         servicePath,
-        finalUrl: url?.toString() || 'URL not constructed'
+        finalUrl: url?.toString() || 'URL not constructed',
+        cause: error instanceof Error ? error.cause : 'No cause'
       });
 
       return c.json({

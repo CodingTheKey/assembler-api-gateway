@@ -1799,19 +1799,24 @@ var parseCorsOrigins = /* @__PURE__ */ __name((origins) => {
   }
   return parsed;
 }, "parseCorsOrigins");
-var buildEnv = /* @__PURE__ */ __name((source) => ({
-  NODE_ENV: source.NODE_ENV || "development",
-  PORT: source.PORT || "3000",
-  LOG_LEVEL: source.LOG_LEVEL || "info",
-  CORS_ORIGINS: parseCorsOrigins(source.CORS_ORIGINS),
-  ASSOCIATES_SERVICE_URL: source.ASSOCIATES_SERVICE_URL || "http://localhost:3001",
-  UNITIES_SERVICE_URL: source.UNITIES_SERVICE_URL || "http://localhost:3001",
-  MEETINGS_SERVICE_URL: source.MEETINGS_SERVICE_URL || "http://localhost:3001",
-  LEGACY_AUTH_SERVICE: source.LEGACY_AUTH_SERVICE || "https://auth-ms.josecorte-dev.workers.dev",
-  LEGACY_MEETING_SERVICE: source.LEGACY_MEETING_SERVICE || "https://meeting-ms.josecorte-dev.workers.dev",
-  LEGACY_ASSOCIATE_SERVICE: source.LEGACY_ASSOCIATE_SERVICE || "https://associate-ms.josecorte-dev.workers.dev",
-  LEGACY_UNITY_SERVICE: source.LEGACY_UNITY_SERVICE || "http://unity-ms.josecorte-dev.workers.dev"
-}), "buildEnv");
+var buildEnv = /* @__PURE__ */ __name((source) => {
+  console.log("Building env from source:", source);
+  const env = {
+    NODE_ENV: source.NODE_ENV || "development",
+    PORT: source.PORT || "3000",
+    LOG_LEVEL: source.LOG_LEVEL || "info",
+    CORS_ORIGINS: parseCorsOrigins(source.CORS_ORIGINS),
+    ASSOCIATES_SERVICE_URL: source.ASSOCIATES_SERVICE_URL || "http://localhost:3001",
+    UNITIES_SERVICE_URL: source.UNITIES_SERVICE_URL || "http://localhost:3001",
+    MEETINGS_SERVICE_URL: source.MEETINGS_SERVICE_URL || "http://localhost:3001",
+    LEGACY_AUTH_SERVICE: source.LEGACY_AUTH_SERVICE || "https://auth-ms.josecorte-dev.workers.dev",
+    LEGACY_MEETING_SERVICE: source.LEGACY_MEETING_SERVICE || "https://meeting-ms.josecorte-dev.workers.dev",
+    LEGACY_ASSOCIATE_SERVICE: source.LEGACY_ASSOCIATE_SERVICE || "https://associate-ms.josecorte-dev.workers.dev",
+    LEGACY_UNITY_SERVICE: source.LEGACY_UNITY_SERVICE || "http://unity-ms.josecorte-dev.workers.dev"
+  };
+  console.log("Built env:", env);
+  return env;
+}, "buildEnv");
 var runtimeEnv = null;
 var loggedEnv = false;
 var detectSource = /* @__PURE__ */ __name(() => {
@@ -2200,8 +2205,10 @@ var RedirectToService = class {
       if (!["GET", "HEAD"].includes(c.req.method)) {
         init.body = await c.req.arrayBuffer();
       }
+      console.log("Making fetch request to:", url.toString(), "with headers:", headers);
       const response = await fetch(url.toString(), init);
       clearTimeout(timeoutId);
+      console.log("Response received:", response.status, response.statusText);
       const proxiedResponse = new Response(response.body, {
         status: response.status,
         statusText: response.statusText
@@ -2222,11 +2229,14 @@ var RedirectToService = class {
           message: "Service did not respond within the timeout period"
         }, 504);
       }
-      console.error("Service connection error:", {
+      console.error("Service connection error details:", {
         error: error instanceof Error ? error.message : String(error),
+        errorName: error instanceof Error ? error.name : "Unknown",
+        errorStack: error instanceof Error ? error.stack : "No stack",
         serviceUrl,
         servicePath,
-        finalUrl: url?.toString() || "URL not constructed"
+        finalUrl: url?.toString() || "URL not constructed",
+        cause: error instanceof Error ? error.cause : "No cause"
       });
       return c.json({
         error: "Service temporarily unavailable",

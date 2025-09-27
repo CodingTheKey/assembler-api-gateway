@@ -29,19 +29,26 @@ const parseCorsOrigins = (origins?: string): string | string[] => {
   return parsed;
 };
 
-const buildEnv = (source: Record<string, string | undefined>): RuntimeEnv => ({
-  NODE_ENV: source.NODE_ENV || 'development',
-  PORT: source.PORT || '3000',
-  LOG_LEVEL: source.LOG_LEVEL || 'info',
-  CORS_ORIGINS: parseCorsOrigins(source.CORS_ORIGINS),
-  ASSOCIATES_SERVICE_URL: source.ASSOCIATES_SERVICE_URL || 'http://localhost:3001',
-  UNITIES_SERVICE_URL: source.UNITIES_SERVICE_URL || 'http://localhost:3001',
-  MEETINGS_SERVICE_URL: source.MEETINGS_SERVICE_URL || 'http://localhost:3001',
-  LEGACY_AUTH_SERVICE: source.LEGACY_AUTH_SERVICE || 'https://auth-ms.josecorte-dev.workers.dev',
-  LEGACY_MEETING_SERVICE: source.LEGACY_MEETING_SERVICE || 'https://meeting-ms.josecorte-dev.workers.dev',
-  LEGACY_ASSOCIATE_SERVICE: source.LEGACY_ASSOCIATE_SERVICE || 'https://associate-ms.josecorte-dev.workers.dev',
-  LEGACY_UNITY_SERVICE: source.LEGACY_UNITY_SERVICE || 'http://unity-ms.josecorte-dev.workers.dev',
-});
+const buildEnv = (source: Record<string, string | undefined>): RuntimeEnv => {
+  console.log('Building env from source:', source);
+
+  const env = {
+    NODE_ENV: source.NODE_ENV || 'development',
+    PORT: source.PORT || '3000',
+    LOG_LEVEL: source.LOG_LEVEL || 'info',
+    CORS_ORIGINS: parseCorsOrigins(source.CORS_ORIGINS),
+    ASSOCIATES_SERVICE_URL: source.ASSOCIATES_SERVICE_URL || 'http://localhost:3001',
+    UNITIES_SERVICE_URL: source.UNITIES_SERVICE_URL || 'http://localhost:3001',
+    MEETINGS_SERVICE_URL: source.MEETINGS_SERVICE_URL || 'http://localhost:3001',
+    LEGACY_AUTH_SERVICE: source.LEGACY_AUTH_SERVICE || 'https://auth-ms.josecorte-dev.workers.dev',
+    LEGACY_MEETING_SERVICE: source.LEGACY_MEETING_SERVICE || 'https://meeting-ms.josecorte-dev.workers.dev',
+    LEGACY_ASSOCIATE_SERVICE: source.LEGACY_ASSOCIATE_SERVICE || 'https://associate-ms.josecorte-dev.workers.dev',
+    LEGACY_UNITY_SERVICE: source.LEGACY_UNITY_SERVICE || 'http://unity-ms.josecorte-dev.workers.dev',
+  };
+
+  console.log('Built env:', env);
+  return env;
+};
 
 let runtimeEnv: RuntimeEnv | null = null;
 let loggedEnv = false;
