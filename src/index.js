@@ -20,8 +20,16 @@ export const createApp = () => {
     app.use('*', logger());
     app.use('*', cors({
         origin: gatewayConfig.corsOrigins,
-        allowHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-        allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+        allowHeaders: [
+            'Content-Type',
+            'Authorization',
+            'Accept',
+            'Origin',
+            'X-Requested-With',
+            'Access-Control-Request-Method',
+            'Access-Control-Request-Headers',
+        ],
+        allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
         exposeHeaders: ['Content-Disposition', 'X-Response-Time'],
         credentials: false,
     }));

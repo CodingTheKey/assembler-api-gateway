@@ -15,9 +15,14 @@ export class ProtectedRoutes {
             if (isLegacyRoute(c)) {
                 return c.notFound();
             }
+            console.log('Available routes:', routes.map(r => ({ path: r.path, target: r.target })));
             const associatesService = routes.find(s => s.path.includes('/associates'));
+            console.log('Found associates service:', associatesService);
             if (!associatesService) {
-                return c.json({ error: 'Associates service not configured' }, 503);
+                return c.json({
+                    error: 'Associates service not configured',
+                    availableRoutes: routes.map(r => r.path)
+                }, 503);
             }
             return await RedirectToService.handle(c, associatesService.target, '/associates', associatesService.timeout);
         });
