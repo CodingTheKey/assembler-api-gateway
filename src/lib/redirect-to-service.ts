@@ -4,7 +4,7 @@ export class RedirectToService {
   static async handle(c: Context, serviceUrl: string, pathPrefix: string, timeout: number = 5000) {
     const originalPath = c.req.path;
     const servicePath = originalPath.replace(`/api${pathPrefix}`, pathPrefix);
-    let url: URL;
+    let url: URL | undefined;
 
     try {
       console.log('RedirectToService params:', { serviceUrl, pathPrefix, timeout, originalPath, servicePath });
@@ -21,8 +21,20 @@ export class RedirectToService {
         headers['Authorization'] = c.req.header('Authorization')!;
       }
 
-      if (!headers['Content-Type'] && c.req.method !== 'GET') {
-        headers['Content-Type'] = 'application/json';
+      const hasContentTypeHeader = Object.keys(headers).some(
+        (key) => key.toLowerCase() === 'content-type'
+      );
+
+      // Only set a default Content-Type if none is provided
+      if (!hasContentTypeHeader && c.req.method !== 'GET') {
+        const originalContentType =
+          c.req.header('Content-Type') ?? c.req.header('content-type');
+
+        if (originalContentType) {
+          headers['Content-Type'] = originalContentType;
+        } else {
+          headers['Content-Type'] = 'application/json';
+        }
       }
 
       url = new URL(servicePath, serviceUrl);
@@ -46,17 +58,17 @@ export class RedirectToService {
       const init: RequestInit = {
         method: c.req.method,
         headers,
-        signal: controller.signal,
+        signal: controller.signal
       };
 
       if (!['GET', 'HEAD'].includes(c.req.method)) {
         init.body = await c.req.arrayBuffer();
       }
 
-      console.log('Making fetch request to:', url.toString(), 'with headers:', headers);
+      console.log(init)
+
       const response = await fetch(url.toString(), init);
       clearTimeout(timeoutId);
-      console.log('Response received:', response.status, response.statusText);
 
       const proxiedResponse = new Response(response.body, {
         status: response.status,
@@ -88,14 +100,16 @@ export class RedirectToService {
         errorStack: error instanceof Error ? error.stack : 'No stack',
         serviceUrl,
         servicePath,
-        finalUrl: url ? url.toString() : 'URL not constructed',
+        finalUrl: url?.toString() ?? 'URL not constructed',
         cause: error instanceof Error ? error.cause : 'No cause'
       });
 
+      console.log(JSON.stringify(error, null, 2));
+
       return c.json({
-        error: 'Service temporarily unavailable',
-        message: 'Failed to connect to target service',
-        details: error instanceof Error ? error.message : String(error),
+        error: (error as Error)?.name ?? 'Service temporarily unavailable',
+        message: (error as Error)?.message ?? 'Failed to connect to target service',
+        details: (error as Error)?.message ?? String(error),
         timestamp: new Date().toISOString()
       }, 503);
     }
