@@ -11,6 +11,7 @@ import { verifyTokenServicesMiddleware } from './middlewares/verify-jwt.middlewa
 import { setupLegacyRoutes } from './routes/legacy-routes';
 import { NotFoundRoute } from './routes/not-found.route';
 import ProtectedRoutes from './routes/protected-routes/protected-routes.factory';
+import { createFileRoute } from './routes/file.route';
 import { swaggerConfig } from './swagger/swagger-config';
 
 export const createApp = () => {
@@ -50,6 +51,10 @@ export const createApp = () => {
   ProtectedRoutes.ProtectedRoutes.configRoute(protectedRoutes, services);
 
   app.route('/api', protectedRoutes);
+
+  // File serving route (no authentication required for public files)
+  const fileRoute = createFileRoute();
+  app.route('/api/file', fileRoute);
 
   app.get('/health', (c) => {
     return c.json({

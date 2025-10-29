@@ -20,3 +20,11 @@ export interface HealthCheckResponse {
     target: string
   }>
 }
+
+export interface CloudflareEnv {
+  BUCKET: R2Bucket
+}
+
+export interface FileRouteContext {
+  Bindings: CloudflareEnv
+}
